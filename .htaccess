@@ -4,3 +4,9 @@ RewriteEngine On
 # where the Authorization request header is otherwise stripped).
 RewriteCond %{HTTP:Authorization} .
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Route clean /api/* URLs (no physical file) to the API front controller,
+# enabling REST paths like api/witnesses and api/witnesses/123.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^api/(.*)$ api/index.php?_route=api/$1 [QSA,L]

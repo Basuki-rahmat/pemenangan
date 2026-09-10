@@ -36,6 +36,21 @@ $routes = [
     'api/admin/theme' => __DIR__ . '/admin/theme.php',
 ];
 
+if ($route === 'api/witnesses') {
+    // POST /api/witnesses -> registrasi saksi (publik)
+    if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+        require __DIR__ . '/witness/register.php';
+    }
+    // GET /api/witnesses -> daftar saksi
+    require __DIR__ . '/witnesses.php';
+}
+
+// Parameterized: api/witnesses/{id}
+if (preg_match('#^api/witnesses/(\d+)$#', $route, $matches)) {
+    $_GET['id'] = $matches[1];
+    require __DIR__ . '/witnesses.php';
+}
+
 if (isset($routes[$route])) {
     require $routes[$route];
 } else {

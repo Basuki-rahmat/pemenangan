@@ -2,13 +2,15 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../bootstrap.php';
 
 use App\Models\TpsWitness;
 use App\Helpers\Response;
-use App\Helpers\JwtHelper;
+use App\Middleware\AuthMiddleware;
 
 header('Content-Type: application/json');
+
+$user = AuthMiddleware::requireAdmin();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error('Method not allowed', 405);
@@ -31,13 +33,7 @@ if (!$witness) {
     Response::error('Saksi tidak ditemukan', 404);
 }
 
-$verifiedBy = 1;
-$user = JwtHelper::getAuthUser();
-if ($user && !empty($user['id'])) {
-    $verifiedBy = (int)$user['id'];
-}
-
-$ok = $witnessModel->verify((string)$input['id'], (string)$verifiedBy, $input['status']);
+$ok = $witnessModel->verify((string)$input['id'], (string)$user['id'], $input['status']);
 
 if ($ok) {
     Response::success(null, 'Status saksi berhasil diubah');

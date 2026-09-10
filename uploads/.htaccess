@@ -1,0 +1,10 @@
+# Disable directory listing
+Options -Indexes
+
+# Disable execution of scripts inside uploads
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .phar .pl .py .jsp .asp .sh .cgi
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .phar .pl .py .jsp .asp .sh .cgi
+
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phar|pl|py|jsp|asp|html|htm|shtml|sh|cgi)$">
+    Require all denied
+</FilesMatch>

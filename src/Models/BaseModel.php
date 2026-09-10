@@ -38,7 +38,7 @@ class BaseModel
             $sql .= " WHERE " . implode(' AND ', $where);
         }
 
-        $sql .= " ORDER BY {$orderBy} LIMIT {$limit}";
+        $sql .= " ORDER BY " . $this->sanitizeOrderBy($orderBy) . " LIMIT " . (int)$limit;
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -94,5 +94,19 @@ class BaseModel
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return (int)$stmt->fetch()['total'];
+    }
+
+    private function sanitizeOrderBy(string $orderBy): string
+    {
+        // Allow: column, table.column, column ASC, column DESC, multi-column with commas
+        $parts = explode(',', $orderBy);
+        $safe = [];
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if (preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?(\s+(ASC|DESC))?$/i', $part)) {
+                $safe[] = $part;
+            }
+        }
+        return !empty($safe) ? implode(', ', $safe) : 'id DESC';
     }
 }

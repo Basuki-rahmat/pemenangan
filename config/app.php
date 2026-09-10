@@ -10,4 +10,5 @@ return [
     'max_file_size' => (int)(getenv('MAX_FILE_SIZE') ?: 5242880),
     'jwt_secret' => getenv('JWT_SECRET') ?: 'default-secret',
     'jwt_expiry' => (int)(getenv('JWT_EXPIRY') ?: 86400),
+    'cors_origin' => getenv('CORS_ORIGIN') ?: '*',
 ];

@@ -1,7 +1,8 @@
 /vendor/
 .env
 /node_modules/
-uploads/
+uploads/*
+!uploads/.htaccess
 *.log
 .DS_Store
 Thumbs.db

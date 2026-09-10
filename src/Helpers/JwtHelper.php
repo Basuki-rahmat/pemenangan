@@ -43,8 +43,13 @@ class JwtHelper
 
     public static function getTokenFromHeader(): ?string
     {
-        $headers = getallheaders();
-        $auth = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+        // Priority 1: FastCGI/CGI-style key
+        $auth = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+
+        if (empty($auth) && function_exists('getallheaders')) {
+            $headers = getallheaders();
+            $auth = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+        }
 
         if (preg_match('/Bearer\s+(.+)$/i', $auth, $matches)) {
             return $matches[1];

@@ -1,1 +1,6 @@
 RewriteEngine On
+
+# Pass Authorization header to PHP (required under Apache + FastCGI/cgi-fcgi,
+# where the Authorization request header is otherwise stripped).
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/auth_check.php';
 
 use App\Models\PartySettings;
 use App\Models\VoteResult;
@@ -62,6 +63,9 @@ if ($filter === 'all') {
                 }
             }
         }
+    </script>
+    <script>
+        window.ADMIN_TOKEN = '<?= htmlspecialchars($_SESSION['api_token'] ?? '', ENT_QUOTES) ?>';
     </script>
     <style>
         <?= $cssVariables ?>
@@ -241,7 +245,10 @@ if ($filter === 'all') {
             try {
                 const response = await fetch('/pemenangan/api/admin/vote.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + window.ADMIN_TOKEN
+                    },
                     body: JSON.stringify({ id: id, status: status })
                 });
                 const data = await response.json();

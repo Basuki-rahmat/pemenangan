@@ -2,13 +2,15 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../bootstrap.php';
 
 use App\Models\VoteResult;
 use App\Helpers\Response;
-use App\Helpers\JwtHelper;
+use App\Middleware\AuthMiddleware;
 
 header('Content-Type: application/json');
+
+$user = AuthMiddleware::requireAdmin();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error('Method not allowed', 405);
@@ -31,15 +33,9 @@ if (!$vote) {
     Response::error('Data suara tidak ditemukan', 404);
 }
 
-$verifiedBy = 1;
-$user = JwtHelper::getAuthUser();
-if ($user && !empty($user['id'])) {
-    $verifiedBy = (int)$user['id'];
-}
-
 $ok = $voteModel->update((string)$input['id'], [
     'status' => $input['status'],
-    'verified_by' => $verifiedBy,
+    'verified_by' => (int)$user['id'],
     'verified_at' => date('Y-m-d H:i:s'),
 ]);
 

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/auth_check.php';
 
 use App\Models\PartySettings;
 use App\Models\TpsWitness;

@@ -2,20 +2,10 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/api/bootstrap.php';
 
 use App\Models\PartySettings;
 use App\Database;
-
-// Load environment
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-$dotenv->safeLoad();
-
-// Initialize JWT
-\App\Helpers\JwtHelper::init(
-    getenv('JWT_SECRET') ?: 'default-secret',
-    (int)(getenv('JWT_EXPIRY') ?: 86400)
-);
 
 // Get active party theme
 $partyModel = new PartySettings();

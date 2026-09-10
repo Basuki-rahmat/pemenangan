@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/auth_check.php';
 
 use App\Models\PartySettings;
 
@@ -32,6 +33,9 @@ $cssVariables = $partyModel->getCssVariables();
                 }
             }
         }
+    </script>
+    <script>
+        window.ADMIN_TOKEN = '<?= htmlspecialchars($_SESSION['api_token'] ?? '', ENT_QUOTES) ?>';
     </script>
     <style>
         <?= $cssVariables ?>
@@ -137,7 +141,10 @@ $cssVariables = $partyModel->getCssVariables();
             try {
                 const response = await fetch('/pemenangan/api/admin/theme.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + window.ADMIN_TOKEN
+                    },
                     body: JSON.stringify({ id: id })
                 });
                 const result = await response.json();

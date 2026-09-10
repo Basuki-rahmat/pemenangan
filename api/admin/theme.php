@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../bootstrap.php';
 
 use App\Models\PartySettings;
 use App\Helpers\Response;
+use App\Middleware\AuthMiddleware;
 
 header('Content-Type: application/json');
+
+AuthMiddleware::requireAdmin();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error('Method not allowed', 405);

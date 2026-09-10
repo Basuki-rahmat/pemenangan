@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../bootstrap.php';
 
 use App\Models\TpsWitness;
 use App\Models\Tps;
@@ -10,11 +10,16 @@ use App\Helpers\Response;
 use App\Helpers\Validator;
 use App\Helpers\GeoHelper;
 use App\Helpers\Upload;
+use App\Helpers\RateLimiter;
 
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error('Method not allowed', 405);
+}
+
+if (!RateLimiter::check('witness_register', 30, 60)) {
+    Response::error('Terlalu banyak permintaan. Coba lagi sebentar.', 429);
 }
 
 $input = Upload::input();

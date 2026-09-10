@@ -1,0 +1,20 @@
+{
+    "name": "basuki-rahmat/pemenangan",
+    "description": "Sistem Informasi Pemenangan Pilkada/Pileg Digital (Sipemenang)",
+    "type": "project",
+    "require": {
+        "php": ">=8.1",
+        "vlucas/phpdotenv": "^5.6",
+        "firebase/php-jwt": "^6.11"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "config": {
+        "audit": {
+            "block-insecure": false
+        }
+    }
+}

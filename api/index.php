@@ -33,6 +33,7 @@ $routes = [
     'api/regions/tps' => __DIR__ . '/regions/tps.php',
     'api/dashboard/stats' => __DIR__ . '/dashboard/stats.php',
     'api/dashboard/heatmap' => __DIR__ . '/dashboard/heatmap.php',
+    'api/dashboard/realtime' => __DIR__ . '/dashboard/realtime.php',
     'api/admin/theme' => __DIR__ . '/admin/theme.php',
 ];
 

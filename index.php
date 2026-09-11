@@ -128,6 +128,17 @@ $cssVariables = $partyModel->getCssVariables();
                     <div class="text-sm text-white/80">Progress</div>
                 </div>
             </div>
+
+            <!-- Realtime Recapitulation -->
+            <div id="realtime-panel" class="mt-8 hidden md:block">
+                <div class="flex items-center justify-center gap-2 text-sm text-white/80 mb-3">
+                    <span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-400"></span></span>
+                    <span class="font-semibold">Real Count Suara</span>
+                    <span id="realtime-time" class="text-white/50"></span>
+                </div>
+                <div id="realtime-candidates" class="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto"></div>
+                <div class="text-xs text-white/70 mt-3" id="realtime-coverage"></div>
+            </div>
         </div>
     </div>
 
@@ -152,6 +163,7 @@ $cssVariables = $partyModel->getCssVariables();
                     <div class="inline-flex rounded-lg bg-gray-100 p-0.5 text-xs font-medium">
                         <button id="view-tps" onclick="setMapView('tps')" class="px-3 py-1.5 rounded-md bg-white shadow text-primary font-semibold transition">📍 TPS</button>
                         <button id="view-heatmap" onclick="setMapView('heatmap')" class="px-3 py-1.5 rounded-md text-gray-500 hover:text-gray-700 transition">🔥 Basis Massa</button>
+                        <button id="view-votes" onclick="setMapView('votes')" class="px-3 py-1.5 rounded-md text-gray-500 hover:text-gray-700 transition">🗳️ Suara</button>
                     </div>
                     <select id="party-filter" onchange="loadHeatmap(this.value)" 
                         class="text-xs border-gray-200 rounded-lg px-2 py-1.5 hidden focus:ring-primary focus:border-primary">
@@ -294,34 +306,97 @@ $cssVariables = $partyModel->getCssVariables();
 
         function setMapView(mode) {
             currentView = mode;
-            const btnTps = document.getElementById('view-tps');
-            const btnHeat = document.getElementById('view-heatmap');
+            const btns = {
+                'tps': document.getElementById('view-tps'),
+                'heatmap': document.getElementById('view-heatmap'),
+                'votes': document.getElementById('view-votes')
+            };
             const legendTps = document.getElementById('legend-tps');
             const legendHeat = document.getElementById('legend-heatmap');
             const partyFilter = document.getElementById('party-filter');
 
+            Object.entries(btns).forEach(([key, btn]) => {
+                if (key === mode) {
+                    btn.classList.add('bg-white', 'shadow', 'text-primary', 'font-semibold');
+                    btn.classList.remove('text-gray-500');
+                } else {
+                    btn.classList.remove('bg-white', 'shadow', 'text-primary', 'font-semibold');
+                    btn.classList.add('text-gray-500');
+                }
+            });
+
+            map.removeLayer(tpsLayer);
+            map.removeLayer(heatmapMarkers);
+            map.removeLayer(heatmapLayer);
+
             if (mode === 'tps') {
-                btnTps.classList.add('bg-white', 'shadow', 'text-primary', 'font-semibold');
-                btnTps.classList.remove('text-gray-500');
-                btnHeat.classList.remove('bg-white', 'shadow', 'text-primary', 'font-semibold');
-                btnHeat.classList.add('text-gray-500');
                 legendTps.classList.remove('hidden');
                 legendHeat.classList.add('hidden');
                 partyFilter.classList.add('hidden');
-                map.removeLayer(heatmapLayer);
-                map.removeLayer(heatmapMarkers);
                 tpsLayer.addTo(map);
-            } else {
-                btnHeat.classList.add('bg-white', 'shadow', 'text-primary', 'font-semibold');
-                btnHeat.classList.remove('text-gray-500');
-                btnTps.classList.remove('bg-white', 'shadow', 'text-primary', 'font-semibold');
-                btnTps.classList.add('text-gray-500');
-                legendHeat.classList.remove('hidden');
+            } else if (mode === 'votes') {
                 legendTps.classList.add('hidden');
+                legendHeat.classList.remove('hidden');
+                partyFilter.classList.add('hidden');
+                heatmapLayer.addTo(map);
+                loadVotesHeatmap('');
+            } else {
+                legendTps.classList.add('hidden');
+                legendHeat.classList.remove('hidden');
                 partyFilter.classList.remove('hidden');
-                map.removeLayer(tpsLayer);
                 heatmapLayer.addTo(map);
                 loadHeatmap(document.getElementById('party-filter').value);
+            }
+        }
+
+        async function loadVotesHeatmap(candidate) {
+            try {
+                const qs = candidate ? `&candidate=${encodeURIComponent(candidate)}` : '';
+                const url = `/pemenangan/api/dashboard/heatmap.php?source=votes${qs}`;
+                const res = await fetch(url);
+                const json = await res.json();
+                if (!json.success) return;
+
+                const pts = json.data.points;
+                const heatData = pts.map(p => [p.lat, p.lng, p.intensity]);
+                heatmapLayer.setLatLngs(heatData);
+
+                if (pts.length > 0) {
+                    const max = json.data.summary.max_intensity;
+                    heatmapLayer.options.max = max > 0 ? max : 1;
+                }
+
+                document.getElementById('heatmap-summary').textContent =
+                    json.data.summary.total_villages.toLocaleString() + ' desa · ' +
+                    json.data.summary.tps_votes_in.toLocaleString() + ' TPS masuk · ' +
+                    json.data.summary.total_votes.toLocaleString() + ' suara';
+
+                heatmapMarkers.clearLayers();
+                const max = json.data.summary.max_intensity || 1;
+                pts.forEach(p => {
+                    const ratio = p.intensity / max;
+                    const r = Math.max(2500, ratio * 7000);
+                    const color = ratio > 0.7 ? '#ef4444' : ratio > 0.4 ? '#f97316' : '#eab308';
+                    const rows = p.candidates.slice(0, 5).map(c =>
+                        `<div>${c.name}: <b>${c.votes.toLocaleString()}</b></div>`).join('');
+                    const circle = L.circle([p.lat, p.lng], {
+                        radius: r, color: color, fillColor: color,
+                        fillOpacity: 0.18, weight: 0
+                    });
+                    circle.bindPopup(`
+                        <div style="font-size:13px;min-width:150px">
+                            <div style="font-weight:700;margin-bottom:4px">${p.label}</div>
+                            <div style="color:#666">${p.regency}</div>
+                            <div style="margin-top:4px">Suara masuk: <b>${p.votes_in}</b>/${p.tps} TPS</div>
+                            <div>Total suara sah: <b>${p.total_votes.toLocaleString()}</b></div>
+                            <div style="margin-top:4px">${rows}</div>
+                        </div>
+                    `);
+                    heatmapMarkers.addLayer(circle);
+                });
+                heatmapMarkers.addTo(map);
+            } catch (err) {
+                console.error('Error loading votes heatmap:', err);
             }
         }
 
@@ -446,8 +521,57 @@ $cssVariables = $partyModel->getCssVariables();
             }
         }
 
+        // Real-time Recapitulation (poll setiap 30 detik)
+        async function loadRealtime() {
+            try {
+                const response = await fetch('/pemenangan/api/dashboard/realtime.php');
+                const data = await response.json();
+                if (!data.success) return;
+
+                document.getElementById('realtime-time').textContent =
+                    '· Diperbarui ' + new Date(data.data.generated_at).toLocaleTimeString('id-ID');
+
+                const box = document.getElementById('realtime-candidates');
+                box.innerHTML = '';
+                data.data.candidates.slice(0, 8).forEach(c => {
+                    const el = document.createElement('div');
+                    el.className = 'bg-white/10 backdrop-blur rounded-lg p-3 text-left';
+                    const name = document.createElement('div');
+                    name.className = 'flex items-center justify-between gap-2';
+                    const n = document.createElement('span');
+                    n.className = 'truncate text-sm font-medium';
+                    n.textContent = c.name;
+                    const v = document.createElement('span');
+                    v.className = 'font-bold text-base';
+                    v.textContent = c.votes.toLocaleString();
+                    name.append(n, v);
+                    const bar = document.createElement('div');
+                    bar.className = 'mt-1 h-1.5 bg-white/20 rounded overflow-hidden';
+                    const fill = document.createElement('div');
+                    fill.className = 'h-full bg-green-400 rounded';
+                    fill.style.width = Math.min(100, c.pct) + '%';
+                    bar.appendChild(fill);
+                    const pct = document.createElement('div');
+                    pct.className = 'text-xs text-white/60 mt-0.5';
+                    pct.textContent = c.pct + '% suara masuk';
+                    el.append(name, bar, pct);
+                    box.appendChild(el);
+                });
+
+                const cov = data.data.coverage;
+                document.getElementById('realtime-coverage').textContent =
+                    'Cakupan: ' + cov.verified_tps + '/' + cov.total_tps + ' TPS terverifikasi (' + cov.pct + '%) · ' +
+                    'Suara sah: ' + data.data.votes.sum_verified.toLocaleString() + ' · ' +
+                    'Tidak sah: ' + data.data.votes.invalid.toLocaleString();
+            } catch (error) {
+                console.error('Error loading realtime:', error);
+            }
+        }
+
         loadTpsMap();
         loadStats();
+        loadRealtime();
+        setInterval(loadRealtime, 30000);
     </script>
 </body>
 </html>

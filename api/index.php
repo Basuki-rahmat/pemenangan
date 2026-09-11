@@ -26,6 +26,7 @@ $routes = [
     'api/auth/logout' => __DIR__ . '/auth/logout.php',
     'api/witness/register' => __DIR__ . '/witness/register.php',
     'api/votes/submit' => __DIR__ . '/vote.php',
+    'api/votes/recap' => __DIR__ . '/votes_recap.php',
     'api/regions/provinces' => __DIR__ . '/regions/provinces.php',
     'api/regions/regencies' => __DIR__ . '/regions/regencies.php',
     'api/regions/districts' => __DIR__ . '/regions/districts.php',

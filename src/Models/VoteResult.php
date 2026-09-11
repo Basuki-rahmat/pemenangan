@@ -64,6 +64,171 @@ class VoteResult extends BaseModel
     }
 
     /**
+     * Rekapitulasi berjenjang: agregasi suara (verified) per tingkat wilayah.
+     *
+     * Level yang didukung: tps, village, district, regency, province.
+     * $parentId = id unit induk (opsional), mis. level=district & parentId=regency_id
+     * akan menampilkan daftar kecamatan dalam kabupaten tersebut.
+     */
+    public function recapByLevel(string $level, ?string $parentId = null): array
+    {
+        $levelMeta = [
+            'tps'      => ['id' => 't.id',         'name' => 't.tps_number'],
+            'village'  => ['id' => 'v.id',         'name' => 'v.name'],
+            'district' => ['id' => 'd.id',         'name' => 'd.name'],
+            'regency'  => ['id' => 'r.id',         'name' => 'r.name'],
+            'province' => ['id' => 'p.id',         'name' => 'p.name'],
+        ];
+        $parentCol = [
+            'tps'      => 'v.id',
+            'village'  => 'd.id',
+            'district' => 'r.id',
+            'regency'  => 'p.id',
+            'province' => null,
+        ];
+
+        if (!isset($levelMeta[$level])) {
+            throw new \InvalidArgumentException('Level tidak valid: ' . $level);
+        }
+
+        $sql = "SELECT t.id AS tps_id, t.tps_number, t.total_dpt,
+                       v.id AS vid, v.name AS vname,
+                       d.id AS did, d.name AS dname,
+                       r.id AS rid, r.name AS rname,
+                       p.id AS pid, p.name AS pname,
+                       vr.total_votes, vr.invalid_votes, vr.candidate_votes
+                FROM {$this->table} vr
+                JOIN (
+                    SELECT tps_id, MAX(id) AS mid
+                    FROM {$this->table}
+                    WHERE status = 'verified'
+                    GROUP BY tps_id
+                ) m ON vr.id = m.mid
+                JOIN tps t ON vr.tps_id = t.id
+                JOIN villages v ON t.village_id = v.id
+                JOIN districts d ON v.district_id = d.id
+                JOIN regencies r ON d.regency_id = r.id
+                JOIN provinces p ON r.province_id = p.id";
+
+        $params = [];
+        if ($parentId !== null && $parentId !== '') {
+            $sql .= " WHERE {$parentCol[$level]} = ?";
+            $params[] = $parentId;
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll();
+
+        $keyField = ['tps' => 'tps_id', 'village' => 'vid', 'district' => 'did', 'regency' => 'rid', 'province' => 'pid'][$level];
+        $nameField = ['tps' => 'tps_number', 'village' => 'vname', 'district' => 'dname', 'regency' => 'rname', 'province' => 'pname'][$level];
+
+        $groups = [];
+        $groupList = [];
+        $candidateTotals = [];
+        $totals = ['tps_total' => 0, 'votes_in' => 0, 'dpt' => 0, 'total_votes' => 0, 'invalid' => 0];
+
+        foreach ($rows as $row) {
+            $gid = (string)$row[$keyField];
+
+            if (!isset($groups[$gid])) {
+                $gname = $row[$nameField];
+                if ($level === 'tps') {
+                    $gname = 'TPS ' . $gname;
+                }
+                $sub = '';
+                if ($level === 'tps')     $sub = $row['vname'];
+                if ($level === 'village') $sub = $row['dname'];
+                if ($level === 'district')$sub = $row['rname'];
+                if ($level === 'regency') $sub = $row['pname'];
+
+                $groups[$gid] = [
+                    'id' => $gid,
+                    'name' => (string)$gname,
+                    'sub' => (string)$sub,
+                    'tps_total' => 0,
+                    'votes_in' => 0,
+                    'dpt' => 0,
+                    'total_votes' => 0,
+                    'sah' => 0,
+                    'invalid' => 0,
+                    'candidates' => [],
+                ];
+                $groupList[$gid] = &$groups[$gid];
+            }
+
+            $g = &$groups[$gid];
+            $g['tps_total']++;
+            $g['votes_in']++;
+            $g['dpt'] += (int)$row['total_dpt'];
+            $g['total_votes'] += (int)$row['total_votes'];
+            $g['invalid'] += (int)$row['invalid_votes'];
+
+            $decoded = json_decode((string)($row['candidate_votes'] ?? '[]'), true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $entry) {
+                    $name = (string)($entry['name'] ?? $entry['candidate_name'] ?? 'Tidak diketahui');
+                    $votes = max(0, (int)($entry['votes'] ?? $entry['total_votes'] ?? 0));
+                    $g['candidates'][$name] = ($g['candidates'][$name] ?? 0) + $votes;
+                    $candidateTotals[$name] = ($candidateTotals[$name] ?? 0) + $votes;
+                }
+            }
+
+            $totals['tps_total']++;
+            $totals['votes_in']++;
+            $totals['dpt'] += (int)$row['total_dpt'];
+            $totals['total_votes'] += (int)$row['total_votes'];
+            $totals['invalid'] += (int)$row['invalid_votes'];
+        }
+        unset($g, $groupList);
+
+        // saham sah = total suara tanpa suara tidak sah
+        foreach ($groups as &$g) {
+            $g['sah'] = $g['total_votes'] - $g['invalid'];
+        }
+        unset($g);
+        $totals['sah'] = $totals['total_votes'] - $totals['invalid'];
+
+        // Ratuskan candidates per group + kandidat global
+        foreach ($groups as &$g) {
+            $list = [];
+            foreach ($g['candidates'] as $name => $votes) {
+                $list[] = ['name' => $name, 'votes' => $votes];
+            }
+            usort($list, fn($a, $b) => $b['votes'] <=> $a['votes']);
+            $denom = array_sum(array_column($list, 'votes')) ?: 1;
+            foreach ($list as &$c) {
+                $c['pct'] = round(($c['votes'] / $denom) * 100, 1);
+            }
+            unset($c);
+            $g['candidates'] = $list;
+        }
+        unset($g);
+
+        $grandCandidates = [];
+        foreach ($candidateTotals as $name => $votes) {
+            $grandCandidates[] = ['name' => $name, 'votes' => $votes];
+        }
+        usort($grandCandidates, fn($a, $b) => $b['votes'] <=> $a['votes']);
+
+        // Urutkan grup: berdasarkan suara sah menurun (province/regency/district/village) lalu id (tps)
+        $groupList = array_values($groups);
+        if ($level === 'tps') {
+            usort($groupList, fn($a, $b) => strnatcmp($a['name'], $b['name']));
+        } else {
+            usort($groupList, fn($a, $b) => $b['total_votes'] <=> $a['total_votes']);
+        }
+
+        return [
+            'level' => $level,
+            'parent_id' => $parentId === null ? null : (string)$parentId,
+            'groups' => $groupList,
+            'totals' => $totals,
+            'candidates' => $grandCandidates,
+        ];
+    }
+
+    /**
      * Daftar hasil suara beserta saksi + info wilayah, mendukung filter status/tps/witness/pencarian.
      */
     public function listWithDetails(array $filters = [], int $limit = 50, int $offset = 0): array

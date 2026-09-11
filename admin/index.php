@@ -70,6 +70,7 @@ $tpsCount = $db->query("SELECT COUNT(*) as total FROM tps")->fetch()['total'];
             <a href="/pemenangan/admin/" class="block px-4 py-3 bg-white/10 rounded-lg">📊 Dashboard</a>
             <a href="/pemenangan/admin/witnesses.php" class="block px-4 py-3 hover:bg-white/10 rounded-lg">👥 Manajemen Saksi</a>
             <a href="/pemenangan/admin/votes.php" class="block px-4 py-3 hover:bg-white/10 rounded-lg">🗳️ Hasil Suara</a>
+            <a href="/pemenangan/admin/recap.php" class="block px-4 py-3 hover:bg-white/10 rounded-lg">🗂️ Rekap Berjenjang</a>
             <a href="/pemenangan/admin/attendance.php" class="block px-4 py-3 hover:bg-white/10 rounded-lg">📅 Kehadiran Saksi</a>
             <a href="/pemenangan/admin/funds.php" class="block px-4 py-3 hover:bg-white/10 rounded-lg">💰 Dana Saksi</a>
             <a href="/pemenangan/admin/regions.php" class="block px-4 py-3 hover:bg-white/10 rounded-lg">🗺️ Data Wilayah</a>

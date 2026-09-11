@@ -184,7 +184,10 @@ foreach ($candidateTotals as $c) {
                 <div class="flex flex-wrap gap-3">
                     <a href="/pemenangan/admin/reports.php?export=witnesses" class="btn-party px-4 py-2 rounded-lg text-sm font-medium">⬇️ Export Saksi (CSV)</a>
                     <a href="/pemenangan/admin/reports.php?export=votes" class="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-600">⬇️ Export Hasil Suara (CSV)</a>
+                    <a href="/pemenangan/admin/recap.php" class="bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-600">🗂️ Rekap Berjenjang (CSV)</a>
+                    <a href="/pemenangan/admin/recap.php?level=village" class="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-600">🖨️ Export PDF Rekap</a>
                 </div>
+                <p class="text-xs text-gray-500 mt-3">PDF per kelurahan/kecamatan/kabupaten tersedia lewat halaman Rekap Berjenjang (tombol 📄 di setiap baris).</p>
             </div>
 
             <!-- Ranking -->
@@ -233,6 +236,7 @@ foreach ($candidateTotals as $c) {
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Saksi Verified</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data Masuk</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Coverage</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200">
@@ -252,6 +256,10 @@ foreach ($candidateTotals as $c) {
                                             </div>
                                             <span class="text-xs text-gray-500"><?= $coverage ?>%</span>
                                         </div>
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <a href="/pemenangan/admin/recap.php?level=district&id=<?= urlencode((string)$s['id']) ?>" class="text-indigo-500 hover:text-indigo-700 text-xs font-medium" title="Rekap berjenjang kecamatan ini">🗂️ Rekap</a>
+                                        <a href="/pemenangan/admin/export_pdf.php?level=district&id=<?= urlencode((string)$s['id']) ?>" class="text-red-500 hover:text-red-700 text-xs font-medium ml-2" title="Download PDF kecamatan ini">📄 PDF</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

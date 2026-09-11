@@ -25,7 +25,7 @@ $routes = [
     'api/auth/register' => __DIR__ . '/auth/register.php',
     'api/auth/logout' => __DIR__ . '/auth/logout.php',
     'api/witness/register' => __DIR__ . '/witness/register.php',
-    'api/votes/submit' => __DIR__ . '/votes/submit.php',
+    'api/votes/submit' => __DIR__ . '/vote.php',
     'api/regions/provinces' => __DIR__ . '/regions/provinces.php',
     'api/regions/regencies' => __DIR__ . '/regions/regencies.php',
     'api/regions/districts' => __DIR__ . '/regions/districts.php',
@@ -49,6 +49,21 @@ if ($route === 'api/witnesses') {
 if (preg_match('#^api/witnesses/(\d+)$#', $route, $matches)) {
     $_GET['id'] = $matches[1];
     require __DIR__ . '/witnesses.php';
+}
+
+if ($route === 'api/votes') {
+    // POST /api/votes -> submit hasil suara C1 (saksi terverifikasi)
+    if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+        require __DIR__ . '/vote.php';
+    }
+    // GET /api/votes -> daftar hasil suara
+    require __DIR__ . '/votes.php';
+}
+
+// Parameterized: api/votes/summary/{tps_id}
+if (preg_match('#^api/votes/summary/([0-9]+)$#', $route, $matches)) {
+    $_GET['tps_id'] = $matches[1];
+    require __DIR__ . '/votes.php';
 }
 
 if (isset($routes[$route])) {

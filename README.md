@@ -73,7 +73,9 @@ Akses: `http://localhost/pemenangan`
 - `POST /api/witness/register.php` - Registrasi saksi
 
 ### Vote Results
-- `POST /api/votes/submit.php` - Submit hasil suara
+- `POST /api/votes` - Submit hasil suara (multipart, saksi terverifikasi + jarak ke TPS)
+- `GET /api/votes` - List hasil suara (filter status/tps_id/witness_id/q, pagination)
+- `GET /api/votes/summary/{tps_id}` - Ringkasan suara per TPS (agregasi per kandidat)
 
 ### Regions
 - `GET /api/regions/provinces.php` - List provinsi

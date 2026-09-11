@@ -11,6 +11,8 @@ SET time_zone = "+07:00";
 -- -------------------------------------------
 -- Table: party_settings
 -- -------------------------------------------
+DROP TABLE IF EXISTS `witness_funds`;
+DROP TABLE IF EXISTS `witness_attendance`;
 DROP TABLE IF EXISTS `activity_logs`;
 DROP TABLE IF EXISTS `vote_results`;
 DROP TABLE IF EXISTS `tps_witnesses`;
@@ -178,6 +180,40 @@ CREATE TABLE `activity_logs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -------------------------------------------
+-- Table: witness_attendance (Tracking Kehadiran Saksi)
+-- -------------------------------------------
+CREATE TABLE `witness_attendance` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `witness_id` BIGINT NOT NULL,
+    `date` DATE NOT NULL,
+    `check_in_at` DATETIME NULL,
+    `check_out_at` DATETIME NULL,
+    `status` ENUM('hadir', 'terlambat', 'izin', 'alpa') DEFAULT 'alpa',
+    `notes` TEXT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY `uq_attendance_witness_date` (`witness_id`, `date`),
+    FOREIGN KEY (`witness_id`) REFERENCES `tps_witnesses`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -------------------------------------------
+-- Table: witness_funds (Rekap Distribusi Dana Saksi TPS)
+-- -------------------------------------------
+CREATE TABLE `witness_funds` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `witness_id` BIGINT NOT NULL,
+    `amount` DECIMAL(12,2) NOT NULL DEFAULT 0,
+    `paid_at` DATE NULL,
+    `method` ENUM('cash', 'transfer') DEFAULT 'cash',
+    `status` ENUM('paid', 'pending', 'cancelled') DEFAULT 'paid',
+    `notes` TEXT NULL,
+    `created_by` BIGINT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`witness_id`) REFERENCES `tps_witnesses`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -------------------------------------------
 -- Indexes for performance
 -- -------------------------------------------
 CREATE INDEX `idx_regencies_province` ON `regencies`(`province_id`);
@@ -189,5 +225,8 @@ CREATE INDEX `idx_witness_status` ON `tps_witnesses`(`status`);
 CREATE INDEX `idx_votes_tps` ON `vote_results`(`tps_id`);
 CREATE INDEX `idx_votes_witness` ON `vote_results`(`witness_id`);
 CREATE INDEX `idx_votes_status` ON `vote_results`(`status`);
+CREATE INDEX `idx_funds_witness` ON `witness_funds`(`witness_id`);
+CREATE INDEX `idx_funds_status` ON `witness_funds`(`status`);
+CREATE INDEX `idx_attendance_date` ON `witness_attendance`(`date`);
 
 COMMIT;
